@@ -3,21 +3,26 @@ def train_cnn(
         input_tensor,
         output_tensor,
         epochs,
+        batch_size,
         lossFunction,
         optimizer,
         print_loss=False
 ):
     losses_train = []
     for i in range(epochs):
-        y_pred = model.forward(input_tensor)
+        losses_batch = []
+        for b in range(batch_size):
+            y_pred = model.forward(input_tensor[b])
 
-        loss_train = lossFunction(y_pred, output_tensor)
-        losses_train.append(loss_train.detach().numpy())
+            loss_train = lossFunction(y_pred, output_tensor[b])
+            losses_batch.append(loss_train.detach().numpy())
 
-        if(print_loss):
-            if i%10 == 0:
-                print(f'Epoch: {i} / Loss: {loss_train}')
+            optimizer.zero_grad()
+            loss_train.backward()
+            optimizer.step()
+        losses_train.append(losses_batch)
 
-        optimizer.zero_grad()
-        loss_train.backward()
-        optimizer.step()
+        if print_loss:
+            print(f'Epoch: {i} / loss: {loss_train}')
+
+    return model, losses_train
