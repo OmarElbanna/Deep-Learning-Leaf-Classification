@@ -1,32 +1,32 @@
-import pandas as pd
-import numpy as np
-import os
-import matplotlib.pyplot as plt
+from pandas import read_csv 
+from os import path
+from matplotlib.pyplot import imread
 from sklearn.preprocessing import LabelEncoder
-import torch
+from sklearn.model_selection import train_test_split
+from torch import FloatTensor, LongTensor
+from math import ceil
 
 from Util import *
 
-def load_leafs_dataset(batch_size):
+def load_leafs_dataset(test_split_size, batch_size):
     # max_width -> 1633
     # max_height -> 1089
+    # number of images -> 990
     # number of categories -> 99
 
     dataset_train_labels_path = 'dataset/train.csv'
     dataset_train_images_path = 'dataset/images'
-    df = pd.read_csv(dataset_train_labels_path)
+    df = read_csv(dataset_train_labels_path)
 
     encoder = LabelEncoder()
-    labels_list = df['species'].to_numpy()
+    labels_list = df['species']
     labels_list = encoder.fit_transform(labels_list)
-    labels_list = np.reshape(labels_list, (batch_size, 1, -1))
-    labels_list = torch.from_numpy(labels_list).float()
 
     images_list = []
     max_width = 0
     max_height = 0
     for id in df['id']:
-        img = plt.imread(os.path.join(dataset_train_images_path, f'{id}.jpg'))
+        img = imread(path.join(dataset_train_images_path, f'{id}.jpg'))
         images_list.append(img)
 
         img_width = img.shape[1]
@@ -39,8 +39,29 @@ def load_leafs_dataset(batch_size):
         img = preprocess_img(images_list[i], max_width, max_height)
         resized_images_list.append(img)
 
-    resized_images_list = np.array(resized_images_list)
-    resized_images_list = np.reshape(resized_images_list, (batch_size, -1, max_height, max_width))
-    resized_images_list = torch.from_numpy(resized_images_list).float()
+    images_train, images_test, labels_train, labels_test = train_test_split(
+        resized_images_list,
+        labels_list,
+        test_size=test_split_size,
+        random_state=1,
+        shuffle=True
+    )
 
-    return resized_images_list, labels_list
+    images_train = FloatTensor(images_train)
+    images_train = images_train.reshape((
+        images_train.shape[0],
+        1,
+        images_train.shape[1],
+        images_train.shape[2]
+    ))
+    labels_train = LongTensor(labels_train)
+
+    num_batches = ceil(images_train.size()[0] / batch_size)
+    images_train = [
+        images_train[batch_size*y:batch_size*(y+1), :, :, :] for y in range(num_batches)
+    ]
+    labels_train = [
+        labels_train[batch_size*y:batch_size*(y+1)] for y in range(num_batches)
+    ]
+
+    return images_train, images_test, labels_train, labels_test
