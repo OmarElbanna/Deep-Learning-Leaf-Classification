@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import cv2
+from torch import nn
 
 def plot_img(img):
     plt.imshow(img)
@@ -32,3 +33,30 @@ def preprocess_img(img, max_width, max_height):
     img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
     img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, None, value=0)
     return img
+
+def calculate_pool_dim(dim, kernel_size, stride):
+    return int((dim - kernel_size) / stride + 1)
+
+def calculate_conv_dim(dim, kernel_size, stride, padding):
+    return int((dim - kernel_size + 2*padding) / stride + 1)
+
+def apply_conv(img_width, img_height, in_channels, out_channels, kernel_size, stride, padding):
+    conv = nn.Conv2d(
+        in_channels=in_channels,
+        out_channels=out_channels,
+        kernel_size=kernel_size,
+        stride=stride,
+        padding=padding
+    )
+    img_width = calculate_conv_dim(img_width, kernel_size, stride, padding)
+    img_height = calculate_conv_dim(img_height, kernel_size, stride, padding)
+    return conv, img_width, img_height
+
+def apply_pool(img_width, img_height, kernel_size, stride):
+    pool = nn.MaxPool2d(
+        kernel_size=kernel_size,
+        stride=stride
+    )
+    img_width = calculate_pool_dim(img_width, kernel_size, stride)
+    img_height = calculate_pool_dim(img_height, kernel_size, stride)
+    return pool, img_width, img_height
