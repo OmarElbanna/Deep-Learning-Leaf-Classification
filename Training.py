@@ -19,7 +19,7 @@ def train_cnn(
 
     for i in range(epochs):
         losses_batch = []
-        for b in range(batch_size):
+        for b in range(len(images_train)):
             y_pred = model.forward(images_train[b])
 
             loss_train = lossFunction(y_pred, labels_train[b])
