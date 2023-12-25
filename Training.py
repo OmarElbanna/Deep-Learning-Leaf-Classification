@@ -1,20 +1,28 @@
+from Model_Evaluation import evaluate_model_with_outputs
+
 def train_cnn(
         model,
-        input_tensor,
-        output_tensor,
+        images_train,
+        labels_train,
+        images_test,
+        labels_test,
         epochs,
         batch_size,
         lossFunction,
         optimizer,
-        print_loss=False
+        print_loss=False,
+        calc_accuracy=False
 ):
     losses_train = []
+    accuracies_train = []
+    accuracies_test = []
+
     for i in range(epochs):
         losses_batch = []
         for b in range(batch_size):
-            y_pred = model.forward(input_tensor[b])
+            y_pred = model.forward(images_train[b])
 
-            loss_train = lossFunction(y_pred, output_tensor[b])
+            loss_train = lossFunction(y_pred, labels_train[b])
             losses_batch.append(loss_train.detach().numpy())
 
             optimizer.zero_grad()
@@ -25,4 +33,12 @@ def train_cnn(
         if print_loss:
             print(f'Epoch: {i} / loss: {loss_train}')
 
-    return model, losses_train
+        if calc_accuracy:
+            accuracies_train.append(
+                evaluate_model_with_outputs(model, images_train, labels_train, batch_size, 0) * 100
+            )
+            accuracies_test.append(
+                evaluate_model_with_outputs(model, images_test, labels_test, batch_size, 1) * 100
+            )
+
+    return model, losses_train, accuracies_train, accuracies_test
